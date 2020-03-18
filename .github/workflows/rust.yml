@@ -1,0 +1,32 @@
+name: Rust
+
+on:
+  push:
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Prepare environment
+      run: sudo apt-get install -qq -y libasound2-dev build-essential portaudio19-dev pkg-config
+    - name: Build
+      run: cargo build --no-default-features --features "alsa-backend" --release
+    - name: Upload artifact
+      uses: actions/upload-artifact@v1.0.0
+      with:
+        # Artifact name
+        name: librespot
+        # Directory containing files to upload
+        path: target/release/librespot
+    - name: Build Docker Container
+      run: |
+        echo $DOCKER_PASSWORD | docker login $DOCKER_REGISTRY -u $DOCKER_USER --password-stdin
+        docker build -t $DOCKER_REGISTRY/librespot/librespot:latest .
+        docker push $DOCKER_REGISTRY/librespot/librespot:latest
+      env:
+        DOCKER_REGISTRY: ${{ secrets.DOCKER_REGISTRY }}
+        DOCKER_USER: ${{ secrets.DOCKER_USER }}
+        DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
